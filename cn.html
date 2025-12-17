@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Adobe JSON-LD Audit Dashboard</title>
+    
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+
+    <style>
+        :root { --adobe-red: #FA0F00; --bg-light: #F5F5F5; }
+        body { background-color: var(--bg-light); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 0.9rem; }
+        
+        .dashboard-container { padding: 20px; max-width: 100%; margin: 0 auto; }
+        .card { border: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        .card-header { background: #fff; border-bottom: 1px solid #eee; font-weight: 700; padding: 15px 20px; }
+        
+        /* Metric Cards */
+        .metric-card { text-align: center; padding: 20px 10px; height: 100%; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s; }
+        .metric-card:hover { transform: translateY(-2px); }
+        .metric-val { font-size: 2.2rem; font-weight: 800; color: #2c3e50; margin-bottom: 5px; }
+        .metric-label { font-size: 0.8rem; color: #6c757d; text-transform: uppercase; font-weight: 600; line-height: 1.4; }
+        
+        /* Colors */
+        .card-total { border-top: 4px solid #6c757d; }
+        .card-both { border-top: 4px solid #198754; }
+        .card-csr { border-top: 4px solid #0d6efd; }
+        .card-ssr { border-top: 4px solid #0dcaf0; }
+        .card-missing { border-top: 4px solid #dc3545; }
+        .card-json { border-top: 4px solid #ffc107; }
+
+        .chart-wrapper { position: relative; height: 350px; width: 100%; padding: 10px; }
+        
+        /* Table Styles */
+        .url-cell { word-break: break-all; min-width: 300px; color: #0d6efd; text-decoration: none; display: block; }
+        .url-cell:hover { text-decoration: underline; }
+        
+        /* Clickable Badges */
+        .badge-btn { cursor: pointer; transition: opacity 0.2s; min-width: 60px; font-size: 0.9em; padding: 6px 10px; display: inline-block; }
+        .badge-btn:hover { opacity: 0.8; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
+
+        /* Type Badges */
+        .badge-type { background-color: #f8f9fa; color: #343a40; border: 1px solid #dee2e6; margin-right: 4px; margin-bottom: 4px; font-weight: 500; }
+        
+        /* Validate Button */
+        .btn-validate { font-size: 0.8rem; padding: 4px 10px; font-weight: 600; white-space: nowrap; }
+        .btn-validate:hover { background-color: #f8f9fa; border-color: #1a73e8; color: #1a73e8; }
+
+        /* Modal JSON Viewer */
+        pre { background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #e9ecef; max-height: 600px; overflow-y: auto; }
+
+        #loading { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
+    </style>
+</head>
+<body>
+
+    <div id="loading">
+        <div class="spinner-border text-danger mb-3" style="width: 3rem; height: 3rem;" role="status"></div>
+        <h4 class="fw-light">Fetching Report...</h4>
+        <p class="text-muted small">Reading Dashboard & Audit Data</p>
+    </div>
+
+    <div class="dashboard-container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h3 class="fw-bold mb-1"><i class="fa-brands fa-adobe text-danger me-2"></i>JSON-LD Audit Dashboard</h3>
+                <p class="text-muted mb-0">Source: <a href="#" id="source-link" target="_blank">adobe-json-ld-audit-turbo.json</a></p>
+            </div>
+            <button class="btn btn-dark btn-sm" onclick="location.reload()"><i class="fas fa-sync-alt me-1"></i> Refresh Data</button>
+        </div>
+
+        <div class="row g-3 mb-4">
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="metric-card card-total">
+                    <div class="metric-val" id="m-total">-</div>
+                    <div class="metric-label">Total URLs<br>Scanned</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="metric-card card-json">
+                    <div class="metric-val text-warning" id="m-found">-</div>
+                    <div class="metric-label">Pages with<br>JSON-LD</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="metric-card card-both">
+                    <div class="metric-val text-success" id="m-both">-</div>
+                    <div class="metric-label">Pages with<br>Both SSR & CSR</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="metric-card card-csr">
+                    <div class="metric-val text-primary" id="m-csr">-</div>
+                    <div class="metric-label">Pages with<br>CSR Only</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="metric-card card-ssr">
+                    <div class="metric-val text-info" id="m-ssr">-</div>
+                    <div class="metric-label">Pages with<br>SSR Only</div>
+                </div>
+            </div>
+            <div class="col-lg-2 col-md-4 col-6">
+                <div class="metric-card card-missing">
+                    <div class="metric-val text-danger" id="m-missing">-</div>
+                    <div class="metric-label">Pages without<br>JSON-LD</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <div class="col-lg-8">
+                <div class="card h-100">
+                    <div class="card-header">Schema Type Distribution</div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            <canvas id="typesChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="card h-100">
+                    <div class="card-header">Implementation Breakdown</div>
+                    <div class="card-body">
+                        <div class="chart-wrapper">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <span>Detailed Audit Logs</span>
+                <span class="badge bg-secondary" id="table-count">0 rows</span>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table id="auditTable" class="table table-hover table-bordered table-striped" style="width:100%">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>Page URL</th>
+                                <th style="width: 120px;" class="text-center">CSR Count</th>
+                                <th style="width: 120px;" class="text-center">SSR Count</th>
+                                <th>Detected Types (Searchable)</th>
+                                <th style="width: 100px;" class="text-center">Validate</th>
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="jsonModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-xl modal-dialog-scrollable">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title"><i class="fas fa-code me-2"></i>JSON-LD Viewer</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info py-2 mb-3">
+                        <strong>Source:</strong> <span id="modal-source-type"></span> | 
+                        <strong>Count:</strong> <span id="modal-count"></span>
+                    </div>
+                    <pre><code id="json-content"></code></pre>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="button" class="btn btn-primary" onclick="copyJson()">Copy to Clipboard</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+    <script>
+        const API_URL = "https://main--milo--adobecom.aem.page/drafts/sarangi/seo/adobe-json-ld-audit-turbo.json?limit=3867";
+        document.getElementById('source-link').href = API_URL;
+        
+        let globalAuditData = [];
+
+        $(document).ready(function() {
+            initDashboard();
+        });
+
+        async function initDashboard() {
+            try {
+                const json = await fetchFullJson();
+                
+                if (json.dashboard && json.dashboard.data) {
+                    processDashboardSummary(json.dashboard.data);
+                }
+
+                if (json.audit && json.audit.data) {
+                    processAuditTable(json.audit.data);
