@@ -186,7 +186,7 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-        const API_URL = "https://main--milo--adobecom.aem.page/drafts/sarangi/seo/cn-usa-json-ld-audit1.json?limit=20";
+        const API_URL = "https://main--milo--adobecom.aem.page/drafts/sarangi/seo/adobe-json-ld-audit-turbo.json?limit=3867";
         document.getElementById('source-link').href = API_URL;
         
         let globalAuditData = [];
@@ -205,3 +205,212 @@
 
                 if (json.audit && json.audit.data) {
                     processAuditTable(json.audit.data);
+                }
+
+                $('#loading').fadeOut();
+
+            } catch (e) {
+                console.error(e);
+                $('#loading').html(`<div class="text-danger p-5"><h3>Error</h3><p>${e.message}</p></div>`);
+            }
+        }
+
+        async function fetchFullJson() {
+            const response = await fetch(API_URL);
+            if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+            return await response.json();
+        }
+
+        function processDashboardSummary(data) {
+            const getVal = (name) => {
+                const item = data.find(d => d.METRIC === name);
+                return item ? parseInt(item.COUNT) : 0;
+            };
+
+            const total = getVal("Total URLs Scanned");
+            const found = getVal("Pages with JSON-LD");
+            const both = getVal("Pages with BOTH SSR & CSR");
+            const ssr = getVal("Pages with ONLY SSR");
+            const csr = getVal("Pages with ONLY CSR");
+            const missing = total - found;
+
+            $('#m-total').text(total.toLocaleString());
+            $('#m-found').text(found.toLocaleString());
+            $('#m-both').text(both.toLocaleString());
+            $('#m-ssr').text(ssr.toLocaleString());
+            $('#m-csr').text(csr.toLocaleString());
+            $('#m-missing').text(missing.toLocaleString());
+
+            const statusCtx = document.getElementById('statusChart').getContext('2d');
+            new Chart(statusCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['Both SSR & CSR', 'CSR Only', 'SSR Only', 'Missing'],
+                    datasets: [{
+                        data: [both, csr, ssr, missing],
+                        backgroundColor: ['#198754', '#0d6efd', '#0dcaf0', '#dc3545']
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } }
+            });
+
+            const summaryKeys = ["Total URLs Scanned", "Pages with JSON-LD", "Pages with BOTH SSR & CSR", "Pages with ONLY SSR", "Pages with ONLY CSR", "@TYPE DISTRIBUTION"];
+            const typeData = data.filter(d => !summaryKeys.includes(d.METRIC));
+            typeData.sort((a, b) => parseInt(b.COUNT) - parseInt(a.COUNT));
+
+            const typeCtx = document.getElementById('typesChart').getContext('2d');
+            new Chart(typeCtx, {
+                type: 'bar',
+                data: {
+                    labels: typeData.map(d => d.METRIC),
+                    datasets: [{
+                        label: 'Pages',
+                        data: typeData.map(d => parseInt(d.COUNT)),
+                        backgroundColor: '#FA0F00'
+                    }]
+                },
+                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+            });
+        }
+
+        function processAuditTable(items) {
+            $('#table-count').text(items.length.toLocaleString() + " rows");
+
+            const rows = items.map((item, index) => {
+                const url = item["URL"];
+                const ssrCount = parseInt(item["SSR Count"] || "0");
+                const csrCount = parseInt(item["CSR Count"] || "0");
+                const rawSSR = item["SSR Content"] || "";
+                const rawCSR = item["CSR Content"] || "";
+
+                // --- TOP LEVEL TYPE EXTRACTION ---
+                // We parse the JSON to get only the root @type, ignoring nested ones
+                let uniqueTypes = new Set();
+                
+                const extractRootType = (rawString) => {
+                    const clean = rawString.replace(/--- #\d+ ---\n/g, '');
+                    try {
+                        let parsed = null;
+                        if (clean.trim().startsWith('{')) {
+                            // Try single parse, or wrap if concatenated
+                            try { parsed = [JSON.parse(clean)]; } 
+                            catch(e) { parsed = JSON.parse(`[${clean.replace(/}\s*{/g, "},{")}]`); }
+                        } else if (clean.trim().startsWith('[')) {
+                            parsed = JSON.parse(clean);
+                        }
+                        
+                        if (parsed) {
+                            parsed.forEach(obj => {
+                                // Check for @graph wrapper
+                                const targets = obj['@graph'] ? obj['@graph'] : [obj];
+                                targets.forEach(t => {
+                                    if (t['@type']) {
+                                        if(Array.isArray(t['@type'])) t['@type'].forEach(x => uniqueTypes.add(x));
+                                        else uniqueTypes.add(t['@type']);
+                                    }
+                                });
+                            });
+                        }
+                    } catch (e) { /* ignore parse error */ }
+                };
+
+                extractRootType(rawSSR);
+                extractRootType(rawCSR);
+                
+                globalAuditData[index] = { ssr: rawSSR, csr: rawCSR };
+
+                return {
+                    id: index,
+                    url: url,
+                    csrCount: csrCount,
+                    ssrCount: ssrCount,
+                    types: Array.from(uniqueTypes)
+                };
+            });
+
+            $('#auditTable').DataTable({
+                data: rows,
+                columns: [
+                    { 
+                        data: 'url', 
+                        render: d => `<a href="${d}" target="_blank" class="url-cell">${d}</a>`
+                    },
+                    { 
+                        data: 'csrCount',
+                        render: (count, type, row) => {
+                            if(count === 0) return '<span class="text-muted small">-</span>';
+                            return `<span class="badge bg-primary badge-btn" onclick="openModal(${row.id}, 'csr')">${count} found <i class="fas fa-eye ms-1"></i></span>`;
+                        },
+                        className: "text-center"
+                    },
+                    { 
+                        data: 'ssrCount',
+                        render: (count, type, row) => {
+                            if(count === 0) return '<span class="text-muted small">-</span>';
+                            return `<span class="badge bg-info badge-btn" onclick="openModal(${row.id}, 'ssr')">${count} found <i class="fas fa-eye ms-1"></i></span>`;
+                        },
+                        className: "text-center"
+                    },
+                    { 
+                        data: 'types',
+                        render: (types) => {
+                            if (!types || types.length === 0) return '<span class="text-muted small">None</span>';
+                            return types.map(t => `<span class="badge badge-type">${t}</span>`).join(' ');
+                        }
+                    },
+                    {
+                        data: 'url',
+                        className: "text-center",
+                        render: (url) => {
+                            const googleUrl = `https://search.google.com/test/rich-results?url=${encodeURIComponent(url)}`;
+                            return `<a href="${googleUrl}" target="_blank" class="btn btn-outline-secondary btn-validate"><i class="fab fa-google text-danger me-1"></i> Test</a>`;
+                        }
+                    }
+                ],
+                pageLength: 25,
+                order: [[ 1, 'desc' ]],
+                language: { searchPlaceholder: "Search URL, Type (e.g. FAQPage)..." }
+            });
+        }
+
+        function openModal(id, type) {
+            let rawData = globalAuditData[id][type];
+            if (!rawData) return;
+
+            let cleanedData = rawData.replace(/--- #\d+ ---\n/g, ''); 
+            
+            let prettyContent = cleanedData;
+            try {
+                const clean = cleanedData.trim();
+                let parsed = null;
+                if (clean.startsWith('{')) {
+                    try { parsed = JSON.parse(clean); } 
+                    catch(e) { parsed = JSON.parse(`[${clean.replace(/}\s*{/g, "},{")}]`); }
+                } else if (clean.startsWith('[')) {
+                    parsed = JSON.parse(clean);
+                }
+                
+                if (parsed) prettyContent = JSON.stringify(parsed, null, 2);
+            } catch (e) {
+                prettyContent = cleanedData;
+            }
+
+            const title = type === 'csr' ? 'Client-Side (CSR) JSON-LD' : 'Server-Side (SSR) JSON-LD';
+            const count = (prettyContent.match(/@context/g) || []).length; 
+
+            $('#modal-source-type').text(title);
+            $('#modal-count').text(count > 0 ? count + " Objects detected" : "Raw Content");
+            $('#json-content').text(prettyContent);
+            
+            new bootstrap.Modal(document.getElementById('jsonModal')).show();
+        }
+
+        function copyJson() {
+            const text = document.getElementById('json-content').innerText;
+            navigator.clipboard.writeText(text).then(() => {
+                alert("Content copied to clipboard!");
+            });
+        }
+    </script>
+</body>
+</html>
