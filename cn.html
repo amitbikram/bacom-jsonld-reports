@@ -17,13 +17,11 @@
         .card { border: none; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px; }
         .card-header { background: #fff; border-bottom: 1px solid #eee; font-weight: 700; padding: 15px 20px; }
         
-        /* Metric Cards */
         .metric-card { text-align: center; padding: 20px 10px; height: 100%; border-radius: 8px; background: white; box-shadow: 0 2px 4px rgba(0,0,0,0.05); transition: transform 0.2s; }
         .metric-card:hover { transform: translateY(-2px); }
         .metric-val { font-size: 2.2rem; font-weight: 800; color: #2c3e50; margin-bottom: 5px; }
         .metric-label { font-size: 0.8rem; color: #6c757d; text-transform: uppercase; font-weight: 600; line-height: 1.4; }
         
-        /* Colors */
         .card-total { border-top: 4px solid #6c757d; }
         .card-both { border-top: 4px solid #198754; }
         .card-csr { border-top: 4px solid #0d6efd; }
@@ -33,22 +31,17 @@
 
         .chart-wrapper { position: relative; height: 350px; width: 100%; padding: 10px; }
         
-        /* Table Styles */
         .url-cell { word-break: break-all; min-width: 300px; color: #0d6efd; text-decoration: none; display: block; }
         .url-cell:hover { text-decoration: underline; }
         
-        /* Clickable Badges */
         .badge-btn { cursor: pointer; transition: opacity 0.2s; min-width: 60px; font-size: 0.9em; padding: 6px 10px; display: inline-block; }
         .badge-btn:hover { opacity: 0.8; box-shadow: 0 2px 4px rgba(0,0,0,0.2); }
 
-        /* Type Badges */
         .badge-type { background-color: #f8f9fa; color: #343a40; border: 1px solid #dee2e6; margin-right: 4px; margin-bottom: 4px; font-weight: 500; }
         
-        /* Validate Button */
         .btn-validate { font-size: 0.8rem; padding: 4px 10px; font-weight: 600; white-space: nowrap; }
         .btn-validate:hover { background-color: #f8f9fa; border-color: #1a73e8; color: #1a73e8; }
 
-        /* Modal JSON Viewer */
         pre { background: #f8f9fa; padding: 15px; border-radius: 5px; border: 1px solid #e9ecef; max-height: 600px; overflow-y: auto; }
 
         #loading { position: fixed; inset: 0; background: rgba(255,255,255,0.98); z-index: 9999; display: flex; flex-direction: column; justify-content: center; align-items: center; }
@@ -186,7 +179,7 @@
     <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
     <script>
-        const API_URL = "https://main--milo--adobecom.aem.page/drafts/sarangi/seo/adobe-json-ld-audit-turbo.json?limit=3867";
+        const API_URL = "https://main--milo--adobecom.aem.page/drafts/sarangi/seo/cn-usa-json-ld-audit.json?limit=6299";
         document.getElementById('source-link').href = API_URL;
         
         let globalAuditData = [];
@@ -278,13 +271,35 @@
 
             const rows = items.map((item, index) => {
                 const url = item["URL"];
-                const ssrCount = parseInt(item["SSR Count"] || "0");
-                const csrCount = parseInt(item["CSR Count"] || "0");
                 const rawSSR = item["SSR Content"] || "";
                 const rawCSR = item["CSR Content"] || "";
 
+                // --- HELPER TO COUNT ITEMS ACCURATELY ---
+                const countSchemas = (rawString) => {
+                    const clean = rawString.replace(/--- #\d+ ---\n/g, '');
+                    if (!clean || clean.trim() === '') return 0;
+                    try {
+                        let parsed = null;
+                        if (clean.trim().startsWith('{')) {
+                            // Try single parse, or wrap if concatenated (hacky JSON fix)
+                            try { parsed = JSON.parse(clean); } 
+                            catch(e) { parsed = JSON.parse(`[${clean.replace(/}\s*{/g, "},{")}]`); }
+                        } else if (clean.trim().startsWith('[')) {
+                            parsed = JSON.parse(clean);
+                        }
+                        
+                        if (Array.isArray(parsed)) return parsed.length; // Correct array length!
+                        if (parsed && typeof parsed === 'object') return 1;
+                        return 0;
+                    } catch (e) {
+                        return 0; // Parse error
+                    }
+                };
+
+                const ssrCount = countSchemas(rawSSR);
+                const csrCount = countSchemas(rawCSR);
+
                 // --- TOP LEVEL TYPE EXTRACTION ---
-                // We parse the JSON to get only the root @type, ignoring nested ones
                 let uniqueTypes = new Set();
                 
                 const extractRootType = (rawString) => {
@@ -292,7 +307,6 @@
                     try {
                         let parsed = null;
                         if (clean.trim().startsWith('{')) {
-                            // Try single parse, or wrap if concatenated
                             try { parsed = [JSON.parse(clean)]; } 
                             catch(e) { parsed = JSON.parse(`[${clean.replace(/}\s*{/g, "},{")}]`); }
                         } else if (clean.trim().startsWith('[')) {
@@ -301,7 +315,6 @@
                         
                         if (parsed) {
                             parsed.forEach(obj => {
-                                // Check for @graph wrapper
                                 const targets = obj['@graph'] ? obj['@graph'] : [obj];
                                 targets.forEach(t => {
                                     if (t['@type']) {
@@ -311,7 +324,7 @@
                                 });
                             });
                         }
-                    } catch (e) { /* ignore parse error */ }
+                    } catch (e) { /* ignore */ }
                 };
 
                 extractRootType(rawSSR);
@@ -322,8 +335,8 @@
                 return {
                     id: index,
                     url: url,
-                    csrCount: csrCount,
-                    ssrCount: ssrCount,
+                    csrCount: csrCount, // Using recalculated count
+                    ssrCount: ssrCount, // Using recalculated count
                     types: Array.from(uniqueTypes)
                 };
             });
@@ -373,6 +386,7 @@
             });
         }
 
+        // --- MODAL LOGIC ---
         function openModal(id, type) {
             let rawData = globalAuditData[id][type];
             if (!rawData) return;
@@ -380,6 +394,8 @@
             let cleanedData = rawData.replace(/--- #\d+ ---\n/g, ''); 
             
             let prettyContent = cleanedData;
+            let objectCount = 0;
+
             try {
                 const clean = cleanedData.trim();
                 let parsed = null;
@@ -390,16 +406,20 @@
                     parsed = JSON.parse(clean);
                 }
                 
-                if (parsed) prettyContent = JSON.stringify(parsed, null, 2);
+                if (parsed) {
+                    prettyContent = JSON.stringify(parsed, null, 2);
+                    objectCount = Array.isArray(parsed) ? parsed.length : 1;
+                }
             } catch (e) {
+                // If it fails to parse (e.g. malformed), fallback to regex count
                 prettyContent = cleanedData;
+                objectCount = (prettyContent.match(/@context/g) || []).length;
             }
 
             const title = type === 'csr' ? 'Client-Side (CSR) JSON-LD' : 'Server-Side (SSR) JSON-LD';
-            const count = (prettyContent.match(/@context/g) || []).length; 
-
+            
             $('#modal-source-type').text(title);
-            $('#modal-count').text(count > 0 ? count + " Objects detected" : "Raw Content");
+            $('#modal-count').text(objectCount > 0 ? objectCount + " Objects detected" : "Raw Content");
             $('#json-content').text(prettyContent);
             
             new bootstrap.Modal(document.getElementById('jsonModal')).show();
