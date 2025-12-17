@@ -199,12 +199,10 @@
             try {
                 const json = await fetchFullJson();
                 
-                // 1. Process Metrics
                 if (json.dashboard && json.dashboard.data) {
                     processDashboardSummary(json.dashboard.data);
                 }
 
-                // 2. Process Table
                 if (json.audit && json.audit.data) {
                     processAuditTable(json.audit.data);
                 }
@@ -243,7 +241,6 @@
             $('#m-csr').text(csr.toLocaleString());
             $('#m-missing').text(missing.toLocaleString());
 
-            // Status Chart
             const statusCtx = document.getElementById('statusChart').getContext('2d');
             new Chart(statusCtx, {
                 type: 'doughnut',
@@ -257,7 +254,6 @@
                 options: { responsive: true, maintainAspectRatio: false, cutout: '60%', plugins: { legend: { position: 'bottom' } } }
             });
 
-            // Type Chart
             const summaryKeys = ["Total URLs Scanned", "Pages with JSON-LD", "Pages with BOTH SSR & CSR", "Pages with ONLY SSR", "Pages with ONLY CSR", "@TYPE DISTRIBUTION"];
             const typeData = data.filter(d => !summaryKeys.includes(d.METRIC));
             typeData.sort((a, b) => parseInt(b.COUNT) - parseInt(a.COUNT));
@@ -287,16 +283,40 @@
                 const rawSSR = item["SSR Content"] || "";
                 const rawCSR = item["CSR Content"] || "";
 
-                // --- Extract Types for Search ---
-                // We combine SSR and CSR content and look for "@type": "Something"
-                const combinedContent = rawSSR + " " + rawCSR;
-                const typeMatches = [...combinedContent.matchAll(/"@type"\s*:\s*"([^"]+)"/g)];
-                
-                // Use a Set to store unique types found in this row
+                // --- TOP LEVEL TYPE EXTRACTION ---
+                // We parse the JSON to get only the root @type, ignoring nested ones
                 let uniqueTypes = new Set();
-                typeMatches.forEach(match => uniqueTypes.add(match[1]));
                 
-                // Store raw content for modal
+                const extractRootType = (rawString) => {
+                    const clean = rawString.replace(/--- #\d+ ---\n/g, '');
+                    try {
+                        let parsed = null;
+                        if (clean.trim().startsWith('{')) {
+                            // Try single parse, or wrap if concatenated
+                            try { parsed = [JSON.parse(clean)]; } 
+                            catch(e) { parsed = JSON.parse(`[${clean.replace(/}\s*{/g, "},{")}]`); }
+                        } else if (clean.trim().startsWith('[')) {
+                            parsed = JSON.parse(clean);
+                        }
+                        
+                        if (parsed) {
+                            parsed.forEach(obj => {
+                                // Check for @graph wrapper
+                                const targets = obj['@graph'] ? obj['@graph'] : [obj];
+                                targets.forEach(t => {
+                                    if (t['@type']) {
+                                        if(Array.isArray(t['@type'])) t['@type'].forEach(x => uniqueTypes.add(x));
+                                        else uniqueTypes.add(t['@type']);
+                                    }
+                                });
+                            });
+                        }
+                    } catch (e) { /* ignore parse error */ }
+                };
+
+                extractRootType(rawSSR);
+                extractRootType(rawCSR);
+                
                 globalAuditData[index] = { ssr: rawSSR, csr: rawCSR };
 
                 return {
@@ -353,7 +373,6 @@
             });
         }
 
-        // --- MODAL LOGIC ---
         function openModal(id, type) {
             let rawData = globalAuditData[id][type];
             if (!rawData) return;
@@ -362,10 +381,16 @@
             
             let prettyContent = cleanedData;
             try {
-                if (cleanedData.trim().startsWith('{') && cleanedData.trim().endsWith('}')) {
-                    const json = JSON.parse(cleanedData);
-                    prettyContent = JSON.stringify(json, null, 2);
-                } 
+                const clean = cleanedData.trim();
+                let parsed = null;
+                if (clean.startsWith('{')) {
+                    try { parsed = JSON.parse(clean); } 
+                    catch(e) { parsed = JSON.parse(`[${clean.replace(/}\s*{/g, "},{")}]`); }
+                } else if (clean.startsWith('[')) {
+                    parsed = JSON.parse(clean);
+                }
+                
+                if (parsed) prettyContent = JSON.stringify(parsed, null, 2);
             } catch (e) {
                 prettyContent = cleanedData;
             }
