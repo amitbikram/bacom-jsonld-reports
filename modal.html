@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Weekly Traffic (Yearly Color Coded)</title>
+    <title>Weekly Traffic Chart</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body {
@@ -25,9 +25,17 @@
         }
         h2 {
             text-align: center;
-            color: #333;
+            color: #2c3e50;
             margin-bottom: 5px;
-            font-size: 24px;
+            font-size: 26px;
+            font-weight: 600;
+        }
+        p.subtitle {
+            text-align: center;
+            color: #7f8c8d;
+            font-size: 16px;
+            margin-top: 0;
+            margin-bottom: 25px;
         }
         .custom-legend {
             display: flex;
@@ -36,6 +44,7 @@
             margin-bottom: 20px;
             font-size: 13px;
             color: #666;
+            flex-wrap: wrap;
         }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
@@ -45,12 +54,16 @@
             height: 600px;
             width: 100%;
         }
+        
+        /* Optional: specific style if you want the URL to look like a link */
+        h2 a { text-decoration: none; color: inherit; }
     </style>
 </head>
 <body>
 
     <div class="chart-card">
-        <h2>Weekly Traffic Trends</h2>
+        <h2><a href="https://business.adobe.com/" target="_blank">https://business.adobe.com</a></h2>
+        <p class="subtitle">Weekly Traffic Trends</p>
         
         <div class="custom-legend">
             <div class="legend-item"><span class="dot" style="background:#A6C8FF"></span> 2023 (PV)</div>
@@ -70,8 +83,7 @@
     <script>
         // --- Configuration ---
         
-        // Define colors for each year to create a visual distinction
-        // Pageviews (Blue Shades) | Geo Modal (Red Shades)
+        // Define colors for each year
         const yearColors = {
             '2023': { pv: '#A6C8FF', geo: '#FFB3B3', label: '#999' },    // Lighter / Greyer
             '2024': { pv: '#4e73df', geo: '#e74a3b', label: '#333' },    // Standard
@@ -246,18 +258,12 @@
                             // Dynamic Segment Coloring
                             segment: {
                                 borderColor: ctx => {
-                                    // p0 is start point, p1 is end point. Use p0 for segment color.
-                                    // Use data index to find year
                                     const index = ctx.p0DataIndex;
                                     const year = getYearFromStr(rawData[index].week);
                                     return (yearColors[year] || defaultColor).pv;
                                 },
-                                pointBackgroundColor: ctx => {
-                                    const index = ctx.p0DataIndex; // Note: 'ctx' here might differ, checking generic context
-                                    return '#fff'; // Keep centers white for cleanliness
-                                }
+                                pointBackgroundColor: ctx => '#fff'
                             },
-                            // Point Color needs to match segment roughly or be consistent
                             pointBackgroundColor: '#fff',
                             pointBorderColor: ctx => {
                                 const index = ctx.dataIndex;
@@ -295,7 +301,7 @@
                     maintainAspectRatio: false,
                     interaction: { mode: 'index', intersect: false },
                     plugins: {
-                        legend: { display: false }, // Hiding default legend to use our custom colored one
+                        legend: { display: false },
                         tooltip: {
                             backgroundColor: 'rgba(255, 255, 255, 0.95)',
                             titleColor: '#333',
