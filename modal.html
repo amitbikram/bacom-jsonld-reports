@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weekly Traffic (Yearly Color Coded)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f7f6;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+        }
+        .chart-card {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            width: 95%;
+            max-width: 1400px;
+        }
+        h2 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 24px;
+        }
+        .custom-legend {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 20px;
+            font-size: 13px;
+            color: #666;
+        }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .dot { width: 12px; height: 12px; border-radius: 50%; display: inline-block; }
+        
+        .chart-container {
+            position: relative;
+            height: 600px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="chart-card">
+        <h2>Weekly Traffic Trends</h2>
+        
+        <div class="custom-legend">
+            <div class="legend-item"><span class="dot" style="background:#A6C8FF"></span> 2023 (PV)</div>
+            <div class="legend-item"><span class="dot" style="background:#4e73df"></span> 2024 (PV)</div>
+            <div class="legend-item"><span class="dot" style="background:#00308F"></span> 2025+ (PV)</div>
+            <span style="margin: 0 10px; border-right: 1px solid #ccc;"></span>
+            <div class="legend-item"><span class="dot" style="background:#FFB3B3"></span> 2023 (Geo)</div>
+            <div class="legend-item"><span class="dot" style="background:#e74a3b"></span> 2024 (Geo)</div>
+            <div class="legend-item"><span class="dot" style="background:#8B0000"></span> 2025+ (Geo)</div>
+        </div>
+        
+        <div class="chart-container">
+            <canvas id="myChart"></canvas>
+        </div>
+    </div>
+
+    <script>
+        // --- Configuration ---
+        
+        // Define colors for each year to create a visual distinction
+        // Pageviews (Blue Shades) | Geo Modal (Red Shades)
+        const yearColors = {
+            '2023': { pv: '#A6C8FF', geo: '#FFB3B3', label: '#999' },    // Lighter / Greyer
+            '2024': { pv: '#4e73df', geo: '#e74a3b', label: '#333' },    // Standard
+            '2025': { pv: '#00308F', geo: '#8B0000', label: '#000' },    // Darker
+            '2026': { pv: '#001A4D', geo: '#4D0000', label: '#000' }     // Very Dark
+        };
+        const defaultColor = { pv: '#4e73df', geo: '#e74a3b', label: '#333' };
+
+        // Helper: Get Year from Date String "MM/DD/YY"
+        function getYearFromStr(dateStr) {
+            if(!dateStr) return '2024';
+            const parts = dateStr.split('/');
+            return '20' + parts[2];
+        }
+
+        // --- Helper Functions ---
+
+        function getWeekNumber(d) {
+            d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+            d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay()||7));
+            var yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            return Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+        }
+
+        function formatWeekLabel(dateStr) {
+            if (!dateStr) return '';
+            const parts = dateStr.split('/');
+            const month = parseInt(parts[0]) - 1;
+            const day = parseInt(parts[1]);
+            const yearVal = parseInt(parts[2]); 
+            const fullYear = 2000 + yearVal;
+
+            const dateObj = new Date(fullYear, month, day);
+            const weekNum = getWeekNumber(dateObj);
+            
+            return `W${weekNum} '${yearVal}`;
+        }
+
+        // --- Main Logic ---
+
+        function initChart() {
+            const rawData = [
+  { "week": "12/30/23", "pageviews": 7680, "geo_modal_shown": 0 },
+  { "week": "01/06/24", "pageviews": 11700, "geo_modal_shown": 0 },
+  { "week": "01/13/24", "pageviews": 12636, "geo_modal_shown": 0 },
+  { "week": "01/20/24", "pageviews": 12838, "geo_modal_shown": 0 },
+  { "week": "01/27/24", "pageviews": 13735, "geo_modal_shown": 0 },
+  { "week": "02/03/24", "pageviews": 13610, "geo_modal_shown": 0 },
+  { "week": "02/10/24", "pageviews": 12260, "geo_modal_shown": 0 },
+  { "week": "02/17/24", "pageviews": 13975, "geo_modal_shown": 0 },
+  { "week": "02/24/24", "pageviews": 12511, "geo_modal_shown": 0 },
+  { "week": "03/02/24", "pageviews": 12479, "geo_modal_shown": 0 },
+  { "week": "03/09/24", "pageviews": 10569, "geo_modal_shown": 0 },
+  { "week": "03/16/24", "pageviews": 10094, "geo_modal_shown": 0 },
+  { "week": "03/23/24", "pageviews": 9902, "geo_modal_shown": 0 },
+  { "week": "03/30/24", "pageviews": 14770, "geo_modal_shown": 0 },
+  { "week": "04/06/24", "pageviews": 13447, "geo_modal_shown": 0 },
+  { "week": "04/13/24", "pageviews": 13562, "geo_modal_shown": 0 },
+  { "week": "04/20/24", "pageviews": 13591, "geo_modal_shown": 0 },
+  { "week": "04/27/24", "pageviews": 11663, "geo_modal_shown": 0 },
+  { "week": "05/04/24", "pageviews": 18547, "geo_modal_shown": 0 },
+  { "week": "05/11/24", "pageviews": 17499, "geo_modal_shown": 0 },
+  { "week": "05/18/24", "pageviews": 19619, "geo_modal_shown": 0 },
+  { "week": "05/25/24", "pageviews": 13545, "geo_modal_shown": 0 },
+  { "week": "06/01/24", "pageviews": 14821, "geo_modal_shown": 0 },
+  { "week": "06/08/24", "pageviews": 25959, "geo_modal_shown": 0 },
+  { "week": "06/15/24", "pageviews": 30442, "geo_modal_shown": 1932 },
+  { "week": "06/22/24", "pageviews": 24077, "geo_modal_shown": 7229 },
+  { "week": "06/29/24", "pageviews": 26838, "geo_modal_shown": 8447 },
+  { "week": "07/06/24", "pageviews": 24479, "geo_modal_shown": 8279 },
+  { "week": "07/13/24", "pageviews": 15615, "geo_modal_shown": 4190 },
+  { "week": "07/20/24", "pageviews": 15905, "geo_modal_shown": 4434 },
+  { "week": "07/27/24", "pageviews": 14863, "geo_modal_shown": 4278 },
+  { "week": "08/03/24", "pageviews": 16942, "geo_modal_shown": 5235 },
+  { "week": "08/10/24", "pageviews": 16374, "geo_modal_shown": 4642 },
+  { "week": "08/17/24", "pageviews": 15932, "geo_modal_shown": 4647 },
+  { "week": "08/24/24", "pageviews": 16078, "geo_modal_shown": 4537 },
+  { "week": "08/31/24", "pageviews": 12293, "geo_modal_shown": 4394 },
+  { "week": "09/07/24", "pageviews": 12094, "geo_modal_shown": 4545 },
+  { "week": "09/14/24", "pageviews": 12501, "geo_modal_shown": 5439 },
+  { "week": "09/21/24", "pageviews": 11731, "geo_modal_shown": 4280 },
+  { "week": "09/28/24", "pageviews": 10976, "geo_modal_shown": 3994 },
+  { "week": "10/05/24", "pageviews": 11042, "geo_modal_shown": 3935 },
+  { "week": "10/12/24", "pageviews": 12597, "geo_modal_shown": 4290 },
+  { "week": "10/19/24", "pageviews": 11514, "geo_modal_shown": 3829 },
+  { "week": "10/26/24", "pageviews": 11817, "geo_modal_shown": 3727 },
+  { "week": "11/02/24", "pageviews": 13768, "geo_modal_shown": 4167 },
+  { "week": "11/09/24", "pageviews": 11866, "geo_modal_shown": 4335 },
+  { "week": "11/16/24", "pageviews": 12290, "geo_modal_shown": 4257 },
+  { "week": "11/23/24", "pageviews": 10299, "geo_modal_shown": 3991 },
+  { "week": "11/30/24", "pageviews": 10123, "geo_modal_shown": 3798 },
+  { "week": "12/07/24", "pageviews": 10706, "geo_modal_shown": 4153 },
+  { "week": "12/14/24", "pageviews": 11391, "geo_modal_shown": 5170 },
+  { "week": "12/21/24", "pageviews": 6486, "geo_modal_shown": 2219 },
+  { "week": "12/28/24", "pageviews": 6804, "geo_modal_shown": 2321 },
+  { "week": "01/04/25", "pageviews": 11290, "geo_modal_shown": 3914 },
+  { "week": "01/11/25", "pageviews": 13953, "geo_modal_shown": 3980 },
+  { "week": "01/18/25", "pageviews": 10987, "geo_modal_shown": 4604 },
+  { "week": "01/25/25", "pageviews": 17800, "geo_modal_shown": 5059 },
+  { "week": "02/01/25", "pageviews": 11173, "geo_modal_shown": 4409 },
+  { "week": "02/08/25", "pageviews": 12066, "geo_modal_shown": 3937 },
+  { "week": "02/15/25", "pageviews": 11243, "geo_modal_shown": 4001 },
+  { "week": "02/22/25", "pageviews": 12338, "geo_modal_shown": 3963 },
+  { "week": "03/01/25", "pageviews": 10645, "geo_modal_shown": 3919 },
+  { "week": "03/08/25", "pageviews": 11229, "geo_modal_shown": 4593 },
+  { "week": "03/15/25", "pageviews": 18416, "geo_modal_shown": 5689 },
+  { "week": "03/22/25", "pageviews": 19625, "geo_modal_shown": 4657 },
+  { "week": "03/29/25", "pageviews": 15212, "geo_modal_shown": 4473 },
+  { "week": "04/05/25", "pageviews": 18089, "geo_modal_shown": 4811 },
+  { "week": "04/12/25", "pageviews": 16796, "geo_modal_shown": 4292 },
+  { "week": "04/19/25", "pageviews": 15785, "geo_modal_shown": 4495 },
+  { "week": "04/26/25", "pageviews": 19034, "geo_modal_shown": 4224 },
+  { "week": "05/03/25", "pageviews": 18834, "geo_modal_shown": 4264 },
+  { "week": "05/10/25", "pageviews": 22614, "geo_modal_shown": 4487 },
+  { "week": "05/17/25", "pageviews": 16678, "geo_modal_shown": 4048 },
+  { "week": "05/24/25", "pageviews": 14794, "geo_modal_shown": 4074 },
+  { "week": "05/31/25", "pageviews": 18619, "geo_modal_shown": 4160 },
+  { "week": "06/07/25", "pageviews": 18128, "geo_modal_shown": 5074 },
+  { "week": "06/14/25", "pageviews": 17543, "geo_modal_shown": 4347 },
+  { "week": "06/21/25", "pageviews": 20695, "geo_modal_shown": 4055 },
+  { "week": "06/28/25", "pageviews": 14275, "geo_modal_shown": 4831 },
+  { "week": "07/05/25", "pageviews": 18657, "geo_modal_shown": 5569 },
+  { "week": "07/12/25", "pageviews": 18285, "geo_modal_shown": 4913 },
+  { "week": "07/19/25", "pageviews": 28080, "geo_modal_shown": 4359 },
+  { "week": "07/26/25", "pageviews": 24515, "geo_modal_shown": 3948 },
+  { "week": "08/02/25", "pageviews": 20676, "geo_modal_shown": 3785 },
+  { "week": "08/09/25", "pageviews": 21800, "geo_modal_shown": 3656 },
+  { "week": "08/16/25", "pageviews": 26619, "geo_modal_shown": 4440 },
+  { "week": "08/23/25", "pageviews": 17401, "geo_modal_shown": 3693 },
+  { "week": "08/30/25", "pageviews": 11925, "geo_modal_shown": 3341 },
+  { "week": "09/06/25", "pageviews": 13596, "geo_modal_shown": 3716 },
+  { "week": "09/13/25", "pageviews": 15966, "geo_modal_shown": 3679 },
+  { "week": "09/20/25", "pageviews": 19581, "geo_modal_shown": 3357 },
+  { "week": "09/27/25", "pageviews": 20836, "geo_modal_shown": 3174 },
+  { "week": "10/04/25", "pageviews": 19403, "geo_modal_shown": 3886 },
+  { "week": "10/11/25", "pageviews": 25566, "geo_modal_shown": 3591 },
+  { "week": "10/18/25", "pageviews": 15702, "geo_modal_shown": 3271 },
+  { "week": "10/25/25", "pageviews": 26431, "geo_modal_shown": 4336 },
+  { "week": "11/01/25", "pageviews": 33624, "geo_modal_shown": 4104 },
+  { "week": "11/08/25", "pageviews": 23074, "geo_modal_shown": 4222 },
+  { "week": "11/15/25", "pageviews": 32356, "geo_modal_shown": 5752 },
+  { "week": "11/22/25", "pageviews": 20914, "geo_modal_shown": 3814 },
+  { "week": "11/29/25", "pageviews": 16328, "geo_modal_shown": 3939 },
+  { "week": "12/06/25", "pageviews": 14494, "geo_modal_shown": 4224 },
+  { "week": "12/13/25", "pageviews": 13208, "geo_modal_shown": 3268 },
+  { "week": "12/20/25", "pageviews": 9567, "geo_modal_shown": 2386 },
+  { "week": "12/27/25", "pageviews": 8628, "geo_modal_shown": 2447 },
+  { "week": "01/03/26", "pageviews": 13850, "geo_modal_shown": 3387 },
+  { "week": "01/10/26", "pageviews": 6699, "geo_modal_shown": 1946 }
+];
+
+            const labels = rawData.map(item => formatWeekLabel(item.week));
+            const pageviewData = rawData.map(item => Number(item.pageviews));
+            const geoData = rawData.map(item => Number(item.geo_modal_shown));
+
+            const ctx = document.getElementById('myChart').getContext('2d');
+            
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Pageviews',
+                            data: pageviewData,
+                            backgroundColor: 'rgba(78, 115, 223, 0.05)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                            tension: 0.3,
+                            fill: true,
+                            // Dynamic Segment Coloring
+                            segment: {
+                                borderColor: ctx => {
+                                    // p0 is start point, p1 is end point. Use p0 for segment color.
+                                    // Use data index to find year
+                                    const index = ctx.p0DataIndex;
+                                    const year = getYearFromStr(rawData[index].week);
+                                    return (yearColors[year] || defaultColor).pv;
+                                },
+                                pointBackgroundColor: ctx => {
+                                    const index = ctx.p0DataIndex; // Note: 'ctx' here might differ, checking generic context
+                                    return '#fff'; // Keep centers white for cleanliness
+                                }
+                            },
+                            // Point Color needs to match segment roughly or be consistent
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: ctx => {
+                                const index = ctx.dataIndex;
+                                const year = getYearFromStr(rawData[index].week);
+                                return (yearColors[year] || defaultColor).pv;
+                            }
+                        },
+                        {
+                            label: 'Geo Modal Shown',
+                            data: geoData,
+                            backgroundColor: 'rgba(231, 74, 59, 0.05)',
+                            borderWidth: 2,
+                            pointRadius: 3,
+                            pointHoverRadius: 6,
+                            tension: 0.3,
+                            fill: true,
+                            segment: {
+                                borderColor: ctx => {
+                                    const index = ctx.p0DataIndex;
+                                    const year = getYearFromStr(rawData[index].week);
+                                    return (yearColors[year] || defaultColor).geo;
+                                }
+                            },
+                            pointBackgroundColor: '#fff',
+                            pointBorderColor: ctx => {
+                                const index = ctx.dataIndex;
+                                const year = getYearFromStr(rawData[index].week);
+                                return (yearColors[year] || defaultColor).geo;
+                            }
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                    plugins: {
+                        legend: { display: false }, // Hiding default legend to use our custom colored one
+                        tooltip: {
+                            backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                            titleColor: '#333',
+                            bodyColor: '#666',
+                            borderColor: '#ddd',
+                            borderWidth: 1,
+                            padding: 10,
+                            callbacks: {
+                                title: function(context) {
+                                    const index = context[0].dataIndex;
+                                    return `${context[0].label} (${rawData[index].week})`; 
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: {
+                                autoSkip: false,
+                                maxRotation: 90,
+                                minRotation: 90,
+                                font: { size: 10 },
+                                // Dynamic Label Coloring
+                                color: (ctx) => {
+                                    const index = ctx.index;
+                                    if(index === undefined || !rawData[index]) return '#666';
+                                    const year = getYearFromStr(rawData[index].week);
+                                    return (yearColors[year] || defaultColor).label;
+                                }
+                            },
+                            title: { display: true, text: 'Week Number (Color Coded by Year)', font: { weight: 'bold' } }
+                        },
+                        y: {
+                            grid: { borderDash: [2, 2], color: '#f0f0f0' },
+                            beginAtZero: true
+                        }
+                    }
+                }
+            });
+        }
+
+        initChart();
+    </script>
+</body>
+</html>
