@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Page Views & Modal Analytics</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #a78bfa, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .header p {
+    color: #94a3b8;
+    font-size: 14px;
+  }
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 28px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .stat-card {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 14px;
+    padding: 20px 24px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .stat-card.blue::before { background: #60a5fa; }
+  .stat-card.purple::before { background: #a78bfa; }
+  .stat-card.green::before { background: #34d399; }
+  .stat-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #64748b;
+    margin-bottom: 8px;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .stat-card.blue .stat-value { color: #60a5fa; }
+  .stat-card.purple .stat-value { color: #a78bfa; }
+  .stat-card.green .stat-value { color: #34d399; }
+  .stat-sub { font-size: 12px; color: #64748b; }
+
+  .chart-wrapper {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 1100px;
+    margin: 0 auto 24px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .chart-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #e2e8f0;
+  }
+  .toggle-btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .toggle-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 600;
+    transition: all 0.2s;
+    background: transparent;
+  }
+  .toggle-btn.blue { border-color: #60a5fa; color: #60a5fa; }
+  .toggle-btn.purple { border-color: #a78bfa; color: #a78bfa; }
+  .toggle-btn.green { border-color: #34d399; color: #34d399; }
+  .toggle-btn.active.blue { background: #60a5fa22; }
+  .toggle-btn.active.purple { background: #a78bfa22; }
+  .toggle-btn.active.green { background: #34d39922; }
+  .toggle-btn.inactive { opacity: 0.35; }
+
+  .chart-container { position: relative; height: 420px; }
+
+  .tooltip-custom {
+    background: #1a1f2e !important;
+    border: 1px solid #3d4466 !important;
+    border-radius: 10px !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4) !important;
+  }
+
+  .insight-bar {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 14px;
+    padding: 18px 24px;
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.7;
+  }
+  .insight-bar strong { color: #e2e8f0; }
+  .dot {
+    display: inline-block;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+    vertical-align: middle;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>📊 Page Views & Modal Analytics</h1>
+  <p>February 2026 · Daily engagement metrics across all channels</p>
+</div>
+
+<div class="stats-row">
+  <div class="stat-card blue">
+    <div class="stat-label">Total Page Views</div>
+    <div class="stat-value">3.38M</div>
+    <div class="stat-sub">Peak: 255,586 on Feb 10</div>
+  </div>
+  <div class="stat-card purple">
+    <div class="stat-label">Total Geo Modal Loads</div>
+    <div class="stat-value">423K</div>
+    <div class="stat-sub">Peak: 39,778 on Feb 11</div>
+  </div>
+  <div class="stat-card green">
+    <div class="stat-label">Total Lang Banner Loads</div>
+    <div class="stat-value">236K</div>
+    <div class="stat-sub">Live since Feb 10 · Rapid ramp</div>
+  </div>
+</div>
+
+<div class="chart-wrapper">
+  <div class="chart-header">
+    <span class="chart-title">Daily Metrics — February 2026</span>
+    <div class="toggle-btns">
+      <button class="toggle-btn blue active" onclick="toggleDataset(0, this)">Page Views</button>
+      <button class="toggle-btn purple active" onclick="toggleDataset(1, this)">Geo Modal Load</button>
+      <button class="toggle-btn green active" onclick="toggleDataset(2, this)">Lang Banner Load</button>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="mainChart"></canvas>
+  </div>
+</div>
+
+<div class="insight-bar">
+  <strong>Key Insights &nbsp;·&nbsp;</strong>
+  <span class="dot" style="background:#60a5fa"></span><strong>Page Views</strong> peaked on Feb 10 (255K) and dipped sharply on Feb 14 (110K — likely Valentine's Day effect).&nbsp;
+  <span class="dot" style="background:#a78bfa"></span><strong>Geo Modal</strong> was dominant through Feb 11, then collapsed after Feb 12, suggesting a feature swap.&nbsp;
+  <span class="dot" style="background:#34d399"></span><strong>Lang Banner</strong> launched Feb 10 and quickly scaled to 35K/day, appearing to <em>replace</em> the Geo Modal.
+</div>
+
+<script>
+const labels = [
+  'Feb 1','Feb 2','Feb 3','Feb 4','Feb 5','Feb 6','Feb 7',
+  'Feb 8','Feb 9','Feb 10','Feb 11','Feb 12','Feb 13','Feb 14',
+  'Feb 15','Feb 16','Feb 17','Feb 18','Feb 19'
+];
+
+const pageViews     = [146252,169616,186282,202293,203323,185760,136833,145404,196388,255586,238650,231419,190125,110209,145580,190093,170477,188325,227139];
+const geoModal      = [28975,33574,34693,35549,35999,31052,23851,28281,33450,36790,39778,10664,391,279,206,173,155,97,106];
+const langBanner    = [0,0,0,0,0,0,0,0,0,10,2,14454,23837,14043,25192,35680,23186,26622,31193];
+
+const ctx = document.getElementById('mainChart').getContext('2d');
+
+const gradient1 = ctx.createLinearGradient(0, 0, 0, 420);
+gradient1.addColorStop(0, 'rgba(96,165,250,0.25)');
+gradient1.addColorStop(1, 'rgba(96,165,250,0)');
+
+const gradient2 = ctx.createLinearGradient(0, 0, 0, 420);
+gradient2.addColorStop(0, 'rgba(167,139,250,0.2)');
+gradient2.addColorStop(1, 'rgba(167,139,250,0)');
+
+const gradient3 = ctx.createLinearGradient(0, 0, 0, 420);
+gradient3.addColorStop(0, 'rgba(52,211,153,0.2)');
+gradient3.addColorStop(1, 'rgba(52,211,153,0)');
+
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'Page Views',
+        data: pageViews,
+        borderColor: '#60a5fa',
+        backgroundColor: gradient1,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#60a5fa',
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Geo Modal Load',
+        data: geoModal,
+        borderColor: '#a78bfa',
+        backgroundColor: gradient2,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#a78bfa',
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y1'
+      },
+      {
+        label: 'Lang Banner Load',
+        data: langBanner,
+        borderColor: '#34d399',
+        backgroundColor: gradient3,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#34d399',
+        pointRadius: 4,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y1'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a1f2e',
+        borderColor: '#3d4466',
+        borderWidth: 1,
+        padding: 14,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        titleFont: { size: 12, weight: '600' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          label(ctx) {
+            return `  ${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString()}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#1e2130', drawBorder: false },
+        ticks: { color: '#64748b', font: { size: 11 }, maxRotation: 45 },
+        border: { color: '#2d3148' }
+      },
+      y: {
+        position: 'left',
+        grid: { color: '#252a3d', drawBorder: false },
+        ticks: {
+          color: '#60a5fa',
+          font: { size: 11 },
+          callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+        },
+        border: { color: '#2d3148' },
+        title: { display: true, text: 'Page Views', color: '#60a5fa', font: { size: 11, weight: '600' } }
+      },
+      y1: {
+        position: 'right',
+        grid: { display: false },
+        ticks: {
+          color: '#a78bfa',
+          font: { size: 11 },
+          callback: v => v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+        },
+        border: { color: '#2d3148' },
+        title: { display: true, text: 'Modal / Banner Loads', color: '#a78bfa', font: { size: 11, weight: '600' } }
+      }
+    }
+  }
+});
+
+function toggleDataset(idx, btn) {
+  const meta = chart.getDatasetMeta(idx);
+  meta.hidden = !meta.hidden;
+  btn.classList.toggle('inactive');
+  chart.update();
+}
+</script>
+</body>
+</html>
