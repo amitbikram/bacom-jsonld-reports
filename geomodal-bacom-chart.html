@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Page Views & Geo Modal — Weekly Analytics(BACOM)</title>
+<title>Page Views, Geo Modal & Lang Banner — Weekly Analytics</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -31,7 +31,7 @@
 
   .stats-row {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 16px;
     margin-bottom: 28px;
     max-width: 1100px;
@@ -56,11 +56,13 @@
   .stat-card.blue::before { background: #60a5fa; }
   .stat-card.purple::before { background: #a78bfa; }
   .stat-card.teal::before { background: #2dd4bf; }
+  .stat-card.green::before { background: #34d399; }
   .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 8px; }
   .stat-value { font-size: 28px; font-weight: 700; margin-bottom: 4px; }
   .stat-card.blue .stat-value { color: #60a5fa; }
   .stat-card.purple .stat-value { color: #a78bfa; }
   .stat-card.teal .stat-value { color: #2dd4bf; }
+  .stat-card.green .stat-value { color: #34d399; }
   .stat-sub { font-size: 12px; color: #64748b; }
 
   .chart-wrapper {
@@ -93,8 +95,10 @@
   }
   .toggle-btn.blue { border-color: #60a5fa; color: #60a5fa; }
   .toggle-btn.purple { border-color: #a78bfa; color: #a78bfa; }
+  .toggle-btn.green { border-color: #34d399; color: #34d399; }
   .toggle-btn.active.blue { background: #60a5fa22; }
   .toggle-btn.active.purple { background: #a78bfa22; }
+  .toggle-btn.active.green { background: #34d39922; }
   .toggle-btn.inactive { opacity: 0.35; }
 
   .chart-container { position: relative; height: 440px; }
@@ -117,7 +121,7 @@
 <body>
 
 <div class="header">
-  <h1>📊 Page Views & Geo Modal Analytics</h1>
+  <h1>📊 Page Views, Geo Modal & Lang Banner Analytics(BACOM)</h1>
   <p>Weekly data · Feb 2025 – Feb 2026</p>
 </div>
 
@@ -132,6 +136,11 @@
     <div class="stat-value">6.08M</div>
     <div class="stat-sub">Peak: 225K week of Oct 25, 2025</div>
   </div>
+  <div class="stat-card green">
+    <div class="stat-label">Total Lang Banner Loads</div>
+    <div class="stat-value">210K</div>
+    <div class="stat-sub">Launched Feb 7, 2026 · Fast ramp</div>
+  </div>
   <div class="stat-card teal">
     <div class="stat-label">Avg Geo Modal Rate</div>
     <div class="stat-value">16.2%</div>
@@ -145,6 +154,7 @@
     <div class="toggle-btns">
       <button class="toggle-btn blue active" onclick="toggleDataset(0, this)">Page Views</button>
       <button class="toggle-btn purple active" onclick="toggleDataset(1, this)">Geo Modal Load</button>
+      <button class="toggle-btn green active" onclick="toggleDataset(2, this)">Lang Banner Load</button>
     </div>
   </div>
   <div class="chart-container">
@@ -154,8 +164,9 @@
 
 <div class="insight-bar">
   <strong>Key Insights &nbsp;·&nbsp;</strong>
-  <span class="dot" style="background:#60a5fa"></span><strong>Page Views</strong> show a strong seasonal surge from Oct–Nov 2025 (peaking at 1.4M), likely holiday traffic, before normalising in early 2026.&nbsp;
-  <span class="dot" style="background:#a78bfa"></span><strong>Geo Modal</strong> broadly tracked page view growth through Jan 2026 but collapsed to near zero the week of Feb 14, 2026 — a likely feature rollback or replacement.
+  <span class="dot" style="background:#60a5fa"></span><strong>Page Views</strong> show a strong seasonal surge from Oct–Nov 2025 (peaking at 1.4M), before normalising in early 2026.&nbsp;
+  <span class="dot" style="background:#a78bfa"></span><strong>Geo Modal</strong> tracked page view growth through Jan 2026 but collapsed to near zero the week of Feb 14, 2026.&nbsp;
+  <span class="dot" style="background:#34d399"></span><strong>Lang Banner</strong> launched Feb 7, 2026 and rapidly scaled to 171K the following week — clearly replacing the Geo Modal.
 </div>
 
 <script>
@@ -164,6 +175,8 @@ const labels = ["Feb 1","Feb 8","Feb 15","Feb 22","Mar 1","Mar 8","Mar 15","Mar 
 const pageViews = [575789,549346,568397,579799,409140,430747,717636,535539,539062,534829,541958,501951,499933,486762,541069,541015,544349,469454,459750,424139,472376,425842,498281,552531,704927,708608,790563,738413,823456,729497,438062,521130,588075,579103,626369,664808,884613,944583,1034516,1368513,1059102,997349,894043,665886,708228,692623,481303,380742,638288,743590,801672,823983,1203382,1404993,1210604];
 
 const geoModal = [119134,87848,86946,86004,70399,76556,96493,89373,89348,92182,119009,103729,90365,91370,96798,90306,90266,86443,84692,79876,80817,68287,75507,79935,98526,115925,159600,118131,126527,110550,86445,97015,125538,105539,121389,129188,142235,155634,225524,197911,172185,173389,160620,134165,144113,108010,75856,70114,124716,155692,156883,156108,218314,173207,1086];
+
+const langBanner = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,38303,171706];
 
 const ctx = document.getElementById('mainChart').getContext('2d');
 
@@ -174,6 +187,10 @@ gradient1.addColorStop(1, 'rgba(96,165,250,0)');
 const gradient2 = ctx.createLinearGradient(0, 0, 0, 440);
 gradient2.addColorStop(0, 'rgba(167,139,250,0.22)');
 gradient2.addColorStop(1, 'rgba(167,139,250,0)');
+
+const gradient3 = ctx.createLinearGradient(0, 0, 0, 440);
+gradient3.addColorStop(0, 'rgba(52,211,153,0.22)');
+gradient3.addColorStop(1, 'rgba(52,211,153,0)');
 
 const chart = new Chart(ctx, {
   type: 'line',
@@ -200,6 +217,19 @@ const chart = new Chart(ctx, {
         backgroundColor: gradient2,
         borderWidth: 2.5,
         pointBackgroundColor: '#a78bfa',
+        pointRadius: 3,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y'
+      },
+      {
+        label: 'Lang Banner Load',
+        data: langBanner,
+        borderColor: '#34d399',
+        backgroundColor: gradient3,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#34d399',
         pointRadius: 3,
         pointHoverRadius: 7,
         tension: 0.4,
@@ -236,7 +266,7 @@ const chart = new Chart(ctx, {
             const idx = ctx.dataIndex;
             const pv = pageViews[idx];
             let line = `  ${ctx.dataset.label}: ${val.toLocaleString()}`;
-            if (ctx.datasetIndex === 1 && pv > 0) {
+            if ((ctx.datasetIndex === 1 || ctx.datasetIndex === 2) && pv > 0) {
               line += `  (${((val / pv) * 100).toFixed(1)}% of Page Views)`;
             }
             return line;
