@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Language Banner Loads by Country</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    background: #0f1117;
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 32px;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 36px;
+  }
+  .header h1 {
+    font-size: 26px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #60a5fa, #f472b6, #34d399);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    margin-bottom: 6px;
+  }
+  .header p { color: #94a3b8; font-size: 14px; }
+
+  .stats-row {
+    display: grid;
+    grid-template-columns: repeat(6, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+    max-width: 1100px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+  .stat-card {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 14px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+  }
+  .stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 14px 14px 0 0;
+  }
+  .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #64748b; margin-bottom: 6px; }
+  .stat-value { font-size: 22px; font-weight: 700; margin-bottom: 3px; }
+  .stat-sub { font-size: 11px; color: #64748b; }
+
+  .chart-wrapper {
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 18px;
+    padding: 28px;
+    max-width: 1100px;
+    margin: 0 auto 24px;
+  }
+  .chart-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .chart-title { font-size: 16px; font-weight: 600; color: #e2e8f0; }
+  .toggle-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+  .toggle-btn {
+    padding: 6px 14px;
+    border-radius: 20px;
+    border: 1.5px solid;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 700;
+    transition: all 0.2s;
+    background: transparent;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .toggle-btn.inactive { opacity: 0.3; }
+
+  .chart-container { position: relative; height: 440px; }
+
+  .insight-bar {
+    max-width: 1100px;
+    margin: 0 auto;
+    background: #1e2130;
+    border: 1px solid #2d3148;
+    border-radius: 14px;
+    padding: 18px 24px;
+    font-size: 13px;
+    color: #94a3b8;
+    line-height: 1.7;
+  }
+  .insight-bar strong { color: #e2e8f0; }
+  .dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 5px; vertical-align: middle; }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1>🌍 Language Banner Loads by Country(ES)</h1>
+  <p>Daily data · Feb 12 – Feb 23, 2026</p>
+</div>
+
+<div class="stats-row" id="statsRow"></div>
+
+<div class="chart-wrapper">
+  <div class="chart-header">
+    <span class="chart-title">Daily Lang Banner Loads per Country</span>
+    <div class="toggle-btns" id="toggleBtns"></div>
+  </div>
+  <div class="chart-container">
+    <canvas id="mainChart"></canvas>
+  </div>
+</div>
+
+<div class="insight-bar">
+  <strong>Key Insights &nbsp;·&nbsp;</strong>
+  <span class="dot" style="background:#60a5fa"></span><strong>US</strong> and <strong>UK</strong> dominate, peaking together at 2,053 and 2,035 respectively on Feb 16. &nbsp;
+  <span class="dot" style="background:#34d399"></span><strong>FR, AU, MX, BR</strong> show consistently low but steady activity. &nbsp;
+  All countries show a sharp drop on Feb 23, likely a partial day of data.
+</div>
+
+<script>
+const labels = ["Feb 12","Feb 13","Feb 14","Feb 15","Feb 16","Feb 17","Feb 18","Feb 19","Feb 20","Feb 21","Feb 22","Feb 23"];
+
+const countries = {
+  us: { label: "US", color: "#60a5fa", data: [1035,1145,717,764,2053,1184,1118,1321,926,632,695,85] },
+  uk: { label: "UK", color: "#f472b6", data: [167,308,542,1307,2035,1237,422,325,267,293,275,49] },
+  fr: { label: "FR", color: "#34d399", data: [8,27,16,14,98,25,26,31,18,13,15,2] },
+  au: { label: "AU", color: "#fb923c", data: [0,0,0,0,17,3,6,12,4,3,8,0] },
+  mx: { label: "MX", color: "#facc15", data: [5,1,0,0,0,0,0,1,0,0,0,0] },
+  br: { label: "BR", color: "#e879f9", data: [0,0,0,0,0,0,0,0,0,0,3,0] }
+};
+
+// Build stat cards
+const statsRow = document.getElementById('statsRow');
+Object.entries(countries).forEach(([code, c]) => {
+  const total = c.data.reduce((a, b) => a + b, 0);
+  const peak = Math.max(...c.data);
+  const peakDay = labels[c.data.indexOf(peak)];
+  statsRow.innerHTML += `
+    <div class="stat-card">
+      <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${c.color};border-radius:14px 14px 0 0"></div>
+      <div class="stat-label">${c.label}</div>
+      <div class="stat-value" style="color:${c.color}">${total.toLocaleString()}</div>
+      <div class="stat-sub">Peak: ${peak.toLocaleString()} on ${peakDay}</div>
+    </div>`;
+});
+
+// Build toggle buttons
+const toggleBtns = document.getElementById('toggleBtns');
+Object.entries(countries).forEach(([code, c], i) => {
+  toggleBtns.innerHTML += `<button class="toggle-btn active" 
+    style="border-color:${c.color};color:${c.color};background:${c.color}18"
+    onclick="toggleDataset(${i}, this)">${c.label}</button>`;
+});
+
+// Build chart datasets
+const ctx = document.getElementById('mainChart').getContext('2d');
+
+const datasets = Object.entries(countries).map(([code, c]) => {
+  const grad = ctx.createLinearGradient(0, 0, 0, 440);
+  grad.addColorStop(0, c.color + '33');
+  grad.addColorStop(1, c.color + '00');
+  return {
+    label: c.label,
+    data: c.data,
+    borderColor: c.color,
+    backgroundColor: grad,
+    borderWidth: 2.5,
+    pointBackgroundColor: c.color,
+    pointRadius: 4,
+    pointHoverRadius: 7,
+    tension: 0.4,
+    fill: false
+  };
+});
+
+const chart = new Chart(ctx, {
+  type: 'line',
+  data: { labels, datasets },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a1f2e',
+        borderColor: '#3d4466',
+        borderWidth: 1,
+        padding: 14,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        titleFont: { size: 12, weight: '600' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          title: items => 'Date: ' + items[0].label + ', 2026',
+          label(ctx) {
+            const val = ctx.parsed.y;
+            const total = Object.values(countries).reduce((s, c) => s + c.data[ctx.dataIndex], 0);
+            const pct = total > 0 ? ((val / total) * 100).toFixed(1) : '0.0';
+            return `  ${ctx.dataset.label}: ${val.toLocaleString()}  (${pct}% of daily total)`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#1e2130' },
+        ticks: { color: '#64748b', font: { size: 11 } },
+        border: { color: '#2d3148' }
+      },
+      y: {
+        grid: { color: '#252a3d' },
+        ticks: {
+          color: '#94a3b8',
+          font: { size: 11 },
+          callback: v => v >= 1000 ? (v/1000).toFixed(1)+'K' : v
+        },
+        border: { color: '#2d3148' },
+        title: { display: true, text: 'Lang Banner Loads', color: '#94a3b8', font: { size: 11, weight: '600' } }
+      }
+    }
+  }
+});
+
+function toggleDataset(idx, btn) {
+  const meta = chart.getDatasetMeta(idx);
+  meta.hidden = !meta.hidden;
+  btn.classList.toggle('inactive');
+  chart.update();
+}
+</script>
+</body>
+</html>
