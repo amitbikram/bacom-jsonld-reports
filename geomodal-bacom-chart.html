@@ -96,9 +96,13 @@
   .toggle-btn.blue { border-color: #60a5fa; color: #60a5fa; }
   .toggle-btn.purple { border-color: #a78bfa; color: #a78bfa; }
   .toggle-btn.green { border-color: #34d399; color: #34d399; }
+  .toggle-btn.orange { border-color: #f97316; color: #f97316; }
+  .toggle-btn.pink { border-color: #ec4899; color: #ec4899; }
   .toggle-btn.active.blue { background: #60a5fa22; }
   .toggle-btn.active.purple { background: #a78bfa22; }
   .toggle-btn.active.green { background: #34d39922; }
+  .toggle-btn.active.orange { background: #f9731622; }
+  .toggle-btn.active.pink { background: #ec489922; }
   .toggle-btn.inactive { opacity: 0.35; }
 
   .chart-container { position: relative; height: 440px; }
@@ -169,12 +173,36 @@
   <span class="dot" style="background:#34d399"></span><strong>Lang Banner</strong> launched Feb 7, 2026 and rapidly scaled to 171K the following week — clearly replacing the Geo Modal.
 </div>
 
+<div class="chart-wrapper" style="margin-top: 28px;">
+  <div class="chart-header">
+    <span class="chart-title">User Interaction Metrics — Feb 2025 to Mar 2026</span>
+    <div class="toggle-btns">
+      <button class="toggle-btn blue active" onclick="toggleDataset2(0, this)">GeoModal Close</button>
+      <button class="toggle-btn purple active" onclick="toggleDataset2(1, this)">GeoModal Stay</button>
+      <button class="toggle-btn green active" onclick="toggleDataset2(2, this)">GeoModal Switch</button>
+      <button class="toggle-btn orange active" onclick="toggleDataset2(3, this)">LangBanner Close</button>
+      <button class="toggle-btn pink active" onclick="toggleDataset2(4, this)">LangBanner Switch</button>
+    </div>
+  </div>
+  <div class="chart-container">
+    <canvas id="interactionChart"></canvas>
+  </div>
+</div>
+
+<div class="insight-bar">
+  <strong>Interaction Insights &nbsp;·&nbsp;</strong>
+  <span class="dot" style="background:#60a5fa"></span><strong>GeoModal Close</strong> peaked at ~52K (Oct 25, 2025) then dropped to near zero after Feb 14, 2026.&nbsp;
+  <span class="dot" style="background:#a78bfa"></span><strong>GeoModal Stay</strong> averaged ~2.1K/week before the transition.&nbsp;
+  <span class="dot" style="background:#34d399"></span><strong>GeoModal Switch</strong> averaged ~11K/week, showing consistent locale switching behavior.&nbsp;
+  <span class="dot" style="background:#f97316"></span><strong>LangBanner</strong> launched Feb 7, 2026 and replaced GeoModal — Close peaked at 2.2K, Switch at 623.
+</div>
+
 <script>
-const labels = ["Feb 1","Feb 8","Feb 15","Feb 22","Mar 1","Mar 8","Mar 15","Mar 22","Mar 29","Apr 5","Apr 12","Apr 19","Apr 26","May 3","May 10","May 17","May 24","May 31","Jun 7","Jun 14","Jun 21","Jun 28","Jul 5","Jul 12","Jul 19","Jul 26","Aug 2","Aug 9","Aug 16","Aug 23","Aug 30","Sep 6","Sep 13","Sep 20","Sep 27","Oct 4","Oct 11","Oct 18","Oct 25","Nov 1","Nov 8","Nov 15","Nov 22","Nov 29","Dec 6","Dec 13","Dec 20","Dec 27","Jan 3","Jan 10","Jan 17","Jan 24","Jan 31","Feb 7","Feb 14", "Feb 21", "Feb 28","Mar 7","Mar 14","Mar 21"];
+const labels = ["Feb 1","Feb 8","Feb 15","Feb 22","Mar 1","Mar 8","Mar 15","Mar 22","Mar 29","Apr 5","Apr 12","Apr 19","Apr 26","May 3","May 10","May 17","May 24","May 31","Jun 7","Jun 14","Jun 21","Jun 28","Jul 5","Jul 12","Jul 19","Jul 26","Aug 2","Aug 9","Aug 16","Aug 23","Aug 30","Sep 6","Sep 13","Sep 20","Sep 27","Oct 4","Oct 11","Oct 18","Oct 25","Nov 1","Nov 8","Nov 15","Nov 22","Nov 29","Dec 6","Dec 13","Dec 20","Dec 27","Jan 3","Jan 10","Jan 17","Jan 24","Jan 31","Feb 7","Feb 14", "Feb 21", "Feb 28","Mar 7","Mar 14","Mar 21", "Mar 28"];
 
-const pageViews = [575789,549346,568397,579799,409140,430747,717636,535539,539062,534829,541958,501951,499933,486762,541069,541015,544349,469454,459750,424139,472376,425842,498281,552531,704927,708608,790563,738413,823456,729497,438062,521130,588075,579103,626369,664808,884613,944583,1034516,1368513,1059102,997349,894043,665886,708228,692623,481303,380742,638288,743590,801672,823983,1203382,1404993,1210604,950453,724822,753860,723371,695388];
+const pageViews = [575789,549346,568397,579799,409140,430747,717636,535539,539062,534829,541958,501951,499933,486762,541069,541015,544349,469454,459750,424139,472376,425842,498281,552531,704927,708608,790563,738413,823456,729497,438062,521130,588075,579103,626369,664808,884613,944583,1034516,1368513,1059102,997349,894043,665886,708228,692623,481303,380742,638288,743590,801672,823983,1203382,1404993,1210604,950453,724822,753860,723371,789502,842844];
 
-const geoModal = [119134,87848,86946,86004,70399,76556,96493,89373,89348,92182,119009,103729,90365,91370,96798,90306,90266,86443,84692,79876,80817,68287,75507,79935,98526,115925,159600,118131,126527,110550,86445,97015,125538,105539,121389,129188,142235,155634,225524,197911,172185,173389,160620,134165,144113,108010,75856,70114,124716,155692,156883,156108,218314,173207,1087,404,170,92,57,44];
+const geoModal = [119134,87848,86946,86004,70399,76556,96493,89373,89348,92182,119009,103729,90365,91370,96798,90306,90266,86443,84692,79876,80817,68287,75507,79935,98526,115925,159600,118131,126527,110550,86445,97015,125538,105539,121389,129188,142235,155634,225524,197911,172185,173389,160620,134165,144113,108010,75856,70114,124716,155692,156883,156108,218314,173207,1087,404,170,92,67,46,26];
 
 const langBanner = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,38303,171706,133228,123359,189065,169291,147597];
 
@@ -258,7 +286,7 @@ const chart = new Chart(ctx, {
             const i = items[0].dataIndex;
             const year = i <= 3 ? '2025' : i <= 54 ? '2025' : '2026';
             // derive year from data position
-            const fullLabels = ["Feb 1, 2025","Feb 8, 2025","Feb 15, 2025","Feb 22, 2025","Mar 1, 2025","Mar 8, 2025","Mar 15, 2025","Mar 22, 2025","Mar 29, 2025","Apr 5, 2025","Apr 12, 2025","Apr 19, 2025","Apr 26, 2025","May 3, 2025","May 10, 2025","May 17, 2025","May 24, 2025","May 31, 2025","Jun 7, 2025","Jun 14, 2025","Jun 21, 2025","Jun 28, 2025","Jul 5, 2025","Jul 12, 2025","Jul 19, 2025","Jul 26, 2025","Aug 2, 2025","Aug 9, 2025","Aug 16, 2025","Aug 23, 2025","Aug 30, 2025","Sep 6, 2025","Sep 13, 2025","Sep 20, 2025","Sep 27, 2025","Oct 4, 2025","Oct 11, 2025","Oct 18, 2025","Oct 25, 2025","Nov 1, 2025","Nov 8, 2025","Nov 15, 2025","Nov 22, 2025","Nov 29, 2025","Dec 6, 2025","Dec 13, 2025","Dec 20, 2025","Dec 27, 2025","Jan 3, 2026","Jan 10, 2026","Jan 17, 2026","Jan 24, 2026","Jan 31, 2026","Feb 7, 2026","Feb 14, 2026","Feb 21, 2026","Feb 28, 2026","Mar 7, 2026","Mar 14, 2026","Mar 21, 2026"];
+            const fullLabels = ["Feb 1, 2025","Feb 8, 2025","Feb 15, 2025","Feb 22, 2025","Mar 1, 2025","Mar 8, 2025","Mar 15, 2025","Mar 22, 2025","Mar 29, 2025","Apr 5, 2025","Apr 12, 2025","Apr 19, 2025","Apr 26, 2025","May 3, 2025","May 10, 2025","May 17, 2025","May 24, 2025","May 31, 2025","Jun 7, 2025","Jun 14, 2025","Jun 21, 2025","Jun 28, 2025","Jul 5, 2025","Jul 12, 2025","Jul 19, 2025","Jul 26, 2025","Aug 2, 2025","Aug 9, 2025","Aug 16, 2025","Aug 23, 2025","Aug 30, 2025","Sep 6, 2025","Sep 13, 2025","Sep 20, 2025","Sep 27, 2025","Oct 4, 2025","Oct 11, 2025","Oct 18, 2025","Oct 25, 2025","Nov 1, 2025","Nov 8, 2025","Nov 15, 2025","Nov 22, 2025","Nov 29, 2025","Dec 6, 2025","Dec 13, 2025","Dec 20, 2025","Dec 27, 2025","Jan 3, 2026","Jan 10, 2026","Jan 17, 2026","Jan 24, 2026","Jan 31, 2026","Feb 7, 2026","Feb 14, 2026","Feb 21, 2026","Feb 28, 2026","Mar 7, 2026","Mar 14, 2026","Mar 21, 2026", "Mar 28, 2026"];
             return 'Week of ' + fullLabels[i];
           },
           label(ctx) {
@@ -304,6 +332,185 @@ function toggleDataset(idx, btn) {
   meta.hidden = !meta.hidden;
   btn.classList.toggle('inactive');
   chart.update();
+}
+
+// Interaction Chart Data
+const geoModalClose = [30863,29077,29178,28112,26334,26353,35384,32000,31645,33038,32562,32370,27165,30558,32674,31340,29947,28358,28030,29009,23576,23226,25155,24597,24606,28627,37694,33888,36042,34278,28432,33051,33741,31572,33728,38813,40012,36969,51796,46898,43142,44902,41689,28524,25894,23421,15427,14392,28636,32316,34100,34347,40761,31555,63,14,9,5,3,0,1];
+
+const geoModalStay = [2188,2294,2261,2200,2303,2259,2504,2350,2339,2221,1971,2101,1893,2133,2103,2049,2031,2006,2084,2228,1889,1721,1989,2032,1893,2107,2412,2223,2262,2194,2220,2496,2394,2420,2175,2224,2468,2195,2387,2403,2420,2559,2075,2123,1733,1607,1024,873,1919,2123,1988,1966,2405,1637,1,1,0,0,0,0,0];
+
+const geoModalSwitch = [12081,12272,12181,12021,11889,12206,13850,12941,13225,12282,10546,10962,10755,11267,12447,12093,11556,11045,10891,10483,8916,9002,9484,9154,9154,10263,12653,11636,11678,11822,11450,12861,12359,12322,12958,13575,13775,13575,14201,13585,13550,13557,11575,9887,9689,8480,4639,4467,10123,10302,10448,10477,11793,8679,2,4,0,1,0,1,0];
+
+const langBannerClose = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,403,2224,2161,1655,1702,1421,1629,1109];
+
+const langBannerSwitch = [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,10,314,412,503,623,577,533,469];
+
+const ctx2 = document.getElementById('interactionChart').getContext('2d');
+
+const gradientClose = ctx2.createLinearGradient(0, 0, 0, 440);
+gradientClose.addColorStop(0, 'rgba(96,165,250,0.25)');
+gradientClose.addColorStop(1, 'rgba(96,165,250,0)');
+
+const gradientStay = ctx2.createLinearGradient(0, 0, 0, 440);
+gradientStay.addColorStop(0, 'rgba(167,139,250,0.22)');
+gradientStay.addColorStop(1, 'rgba(167,139,250,0)');
+
+const gradientSwitch = ctx2.createLinearGradient(0, 0, 0, 440);
+gradientSwitch.addColorStop(0, 'rgba(52,211,153,0.22)');
+gradientSwitch.addColorStop(1, 'rgba(52,211,153,0)');
+
+const gradientLBClose = ctx2.createLinearGradient(0, 0, 0, 440);
+gradientLBClose.addColorStop(0, 'rgba(249,115,22,0.22)');
+gradientLBClose.addColorStop(1, 'rgba(249,115,22,0)');
+
+const gradientLBSwitch = ctx2.createLinearGradient(0, 0, 0, 440);
+gradientLBSwitch.addColorStop(0, 'rgba(236,72,153,0.22)');
+gradientLBSwitch.addColorStop(1, 'rgba(236,72,153,0)');
+
+const chart2 = new Chart(ctx2, {
+  type: 'line',
+  data: {
+    labels,
+    datasets: [
+      {
+        label: 'GeoModal Close',
+        data: geoModalClose,
+        borderColor: '#60a5fa',
+        backgroundColor: gradientClose,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#60a5fa',
+        pointRadius: 3,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y'
+      },
+      {
+        label: 'GeoModal Stay',
+        data: geoModalStay,
+        borderColor: '#a78bfa',
+        backgroundColor: gradientStay,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#a78bfa',
+        pointRadius: 3,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y'
+      },
+      {
+        label: 'GeoModal Switch',
+        data: geoModalSwitch,
+        borderColor: '#34d399',
+        backgroundColor: gradientSwitch,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#34d399',
+        pointRadius: 3,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y'
+      },
+      {
+        label: 'LangBanner Close',
+        data: langBannerClose,
+        borderColor: '#f97316',
+        backgroundColor: gradientLBClose,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#f97316',
+        pointRadius: 3,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y2'
+      },
+      {
+        label: 'LangBanner Switch',
+        data: langBannerSwitch,
+        borderColor: '#ec4899',
+        backgroundColor: gradientLBSwitch,
+        borderWidth: 2.5,
+        pointBackgroundColor: '#ec4899',
+        pointRadius: 3,
+        pointHoverRadius: 7,
+        tension: 0.4,
+        fill: true,
+        yAxisID: 'y2'
+      }
+    ]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: 'index', intersect: false },
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        backgroundColor: '#1a1f2e',
+        borderColor: '#3d4466',
+        borderWidth: 1,
+        padding: 14,
+        titleColor: '#94a3b8',
+        bodyColor: '#e2e8f0',
+        titleFont: { size: 12, weight: '600' },
+        bodyFont: { size: 13 },
+        callbacks: {
+          title(items) {
+            const i = items[0].dataIndex;
+            const fullLabels = ["Feb 1, 2025","Feb 8, 2025","Feb 15, 2025","Feb 22, 2025","Mar 1, 2025","Mar 8, 2025","Mar 15, 2025","Mar 22, 2025","Mar 29, 2025","Apr 5, 2025","Apr 12, 2025","Apr 19, 2025","Apr 26, 2025","May 3, 2025","May 10, 2025","May 17, 2025","May 24, 2025","May 31, 2025","Jun 7, 2025","Jun 14, 2025","Jun 21, 2025","Jun 28, 2025","Jul 5, 2025","Jul 12, 2025","Jul 19, 2025","Jul 26, 2025","Aug 2, 2025","Aug 9, 2025","Aug 16, 2025","Aug 23, 2025","Aug 30, 2025","Sep 6, 2025","Sep 13, 2025","Sep 20, 2025","Sep 27, 2025","Oct 4, 2025","Oct 11, 2025","Oct 18, 2025","Oct 25, 2025","Nov 1, 2025","Nov 8, 2025","Nov 15, 2025","Nov 22, 2025","Nov 29, 2025","Dec 6, 2025","Dec 13, 2025","Dec 20, 2025","Dec 27, 2025","Jan 3, 2026","Jan 10, 2026","Jan 17, 2026","Jan 24, 2026","Jan 31, 2026","Feb 7, 2026","Feb 14, 2026","Feb 21, 2026","Feb 28, 2026","Mar 7, 2026","Mar 14, 2026","Mar 21, 2026","Mar 28, 2026"];
+            return 'Week of ' + fullLabels[i];
+          },
+          label(ctx) {
+            const val = ctx.parsed.y;
+            return `  ${ctx.dataset.label}: ${val.toLocaleString()}`;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: { color: '#1e2130', drawBorder: false },
+        ticks: {
+          color: '#64748b',
+          font: { size: 10 },
+          maxRotation: 45,
+          maxTicksLimit: 20
+        },
+        border: { color: '#2d3148' }
+      },
+      y: {
+        type: 'linear',
+        position: 'left',
+        grid: { color: '#252a3d', drawBorder: false },
+        ticks: {
+          color: '#94a3b8',
+          font: { size: 11 },
+          callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+        },
+        border: { color: '#2d3148' },
+        title: { display: true, text: 'GeoModal Interactions', color: '#94a3b8', font: { size: 11, weight: '600' } }
+      },
+      y2: {
+        type: 'linear',
+        position: 'right',
+        grid: { drawOnChartArea: false },
+        ticks: {
+          color: '#f97316',
+          font: { size: 11 },
+          callback: v => v >= 1000 ? (v/1000).toFixed(1)+'K' : v
+        },
+        border: { color: '#2d3148' },
+        title: { display: true, text: 'LangBanner Interactions', color: '#f97316', font: { size: 11, weight: '600' } }
+      }
+    }
+  }
+});
+
+function toggleDataset2(idx, btn) {
+  const meta = chart2.getDatasetMeta(idx);
+  meta.hidden = !meta.hidden;
+  btn.classList.toggle('inactive');
+  chart2.update();
 }
 </script>
 </body>
